@@ -1,58 +1,44 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './config/db.js';
+import mongoose from 'mongoose';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
-import mongoose from 'mongoose';
 
 // Load env vars
 dotenv.config();
 
-// Connect database
-connectDB();
-
 const app = express();
 
-// Standard Middlewares
-//new
-app.use((req,res,next)=>{
-  if(!isConnected){
-    connectToMongoDB();
+let isConnected = false;
+
+async function connectToMongoDB() {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (error) {
+    console.log('Error connecting to MongoDB:', error);
+  }
+}
+
+// Ensure DB is connected before handling any request
+app.use(async (req, res, next) => {
+  if (!isConnected) {
+    await connectToMongoDB();
   }
   next();
-})
+});
 
-
-
-//new
 app.use(cors());
 app.use(express.json());
 
 // API Routes
-//new
-let isconnected=false;
-async function connectToMongoDB(){
-  try{
-     await mongoose.connect(process.env.MONGO_URI,{
-      useNewUrlParser:true,
-      useUnifiedTechnology:true
-    });
-    isConnected=true;
-    console.log('Connected to MongoDB');
-  } catch(error){
-    console.log('Error connecting to MongoDB:',error);
-  }
-}
-//new
-  
-  
-    
-   
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/departments', departmentRoutes);
@@ -72,16 +58,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
-//   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-// });
-
-//new
-module.exports=app
-
-
-
-
-
-//new
+export default app;
